@@ -1,0 +1,12 @@
+{
+  "name": "masonlandscapes-aggloads-demo",
+  "version": "1.0.0",
+  "description": "Agg Loads interactive docket demo (static site served by a tiny Node server).",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

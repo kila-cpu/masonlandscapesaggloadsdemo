@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#F7B500">
+<title>Agg Loads &mdash; Interactive Demo</title>
+<style>
+  :root{
+    /* accent — yellow (was red in wireframes) */
+    --yellow:#F7B500;
+    --yellow-press:#E0A400;
+    --yellow-soft:#FFF3D0;
+    --yellow-ink:#1E1E1E;      /* text/icons on yellow fills */
+    --gold:#A9760A;            /* accent text on white (replaces red text) */
+
+    --ink:#1C1C1F;
+    --sub:#6C6C72;
+    --field:#F1F1F3;
+    --field-line:#E6E6E9;
+    --line:#ECECEE;
+    --blue:#2FA6D8;            /* truck circles (blue in wireframe) */
+    --green:#2E9E5B;
+    --green-soft:#E4F5EA;
+    --grey-pill:#EDEDEF;
+    --grey-pill-ink:#7A7A80;
+    --app-bg:#FFFFFF;
+    --frame:#111317;
+
+    /* studio backdrop */
+    --bg-1:#EFEEEA; --bg-2:#DEDCD5;
+    --page-ink:#26251F; --page-sub:#6E6C63;
+    --legend-card:rgba(255,255,255,.72); --legend-line:rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg-1:#1A1B1E; --bg-2:#0D0E10; --page-ink:#F3F1EA; --page-sub:#A3A199;
+      --legend-card:rgba(255,255,255,.05); --legend-line:rgba(255,255,255,.10); }
+  }
+  :root[data-theme="light"]{ --bg-1:#EFEEEA; --bg-2:#DEDCD5; --page-ink:#26251F; --page-sub:#6E6C63;
+    --legend-card:rgba(255,255,255,.72); --legend-line:rgba(0,0,0,.08); }
+  :root[data-theme="dark"]{ --bg-1:#1A1B1E; --bg-2:#0D0E10; --page-ink:#F3F1EA; --page-sub:#A3A199;
+    --legend-card:rgba(255,255,255,.05); --legend-line:rgba(255,255,255,.10); }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    background:radial-gradient(1200px 720px at 50% -12%, var(--bg-1), var(--bg-2));
+    min-height:100vh;color:var(--page-ink);-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;padding:34px 16px 60px;gap:22px;
+  }
+  .masthead{text-align:center;max-width:640px}
+  .masthead .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:800;margin:0 0 10px}
+  .masthead h1{margin:0;font-size:clamp(30px,6vw,46px);font-weight:800;letter-spacing:-.02em;line-height:.95}
+  .masthead p{margin:14px auto 0;max-width:48ch;color:var(--page-sub);font-size:15px;line-height:1.55}
+
+  .stage{display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+  /* phone */
+  .phone{--w:392px;--h:812px;position:relative;width:var(--w);height:var(--h);flex:0 0 auto;
+    background:var(--frame);border-radius:52px;padding:13px;
+    box-shadow:0 2px 4px rgba(0,0,0,.4),0 44px 90px -22px rgba(0,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.06);}
+  .screen{position:relative;width:100%;height:100%;background:var(--app-bg);border-radius:40px;overflow:hidden;display:flex;flex-direction:column;color:var(--ink)}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:30px;background:var(--frame);border-radius:0 0 18px 18px;z-index:60}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:44px;z-index:55;display:flex;align-items:center;justify-content:space-between;padding:15px 30px 0;font-size:14px;font-weight:600;color:var(--ink);pointer-events:none}
+  .statusbar .r{display:flex;gap:7px;align-items:center}
+  .statusbar svg{width:17px;height:17px;display:block}
+
+  .views{position:absolute;inset:44px 0 0;overflow:hidden}
+  .view{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateX(20px);transition:opacity .28s ease,transform .28s ease}
+  .view.active{opacity:1;visibility:visible;transform:none}
+  @media (prefers-reduced-motion:reduce){.view{transition:none}}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* ---- list / table ---- */
+  .ltable{display:flex;flex-direction:column}
+  .lhead{display:grid;grid-template-columns:1fr 1.15fr .8fr 1.25fr;background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:13px;padding:14px 14px}
+  .lhead span:nth-child(3),.lrow .st{justify-self:start}
+  .lrow{display:grid;grid-template-columns:1fr 1.15fr .8fr 1.25fr;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;background:#fff}
+  .lrow .dk{font-weight:600}
+  .lrow .dt{color:var(--ink)}
+  .pill{display:inline-flex;align-items:center;justify-self:start;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
+  .pill.active{background:var(--green-soft);color:var(--green)}
+  .pill.done{background:var(--grey-pill);color:var(--grey-pill-ink)}
+  .vbtnbtn{justify-self:end;background:var(--yellow);color:var(--yellow-ink);border:0;border-radius:7px;font-weight:800;font-size:12.5px;padding:9px 12px;cursor:pointer;white-space:nowrap;transition:.12s}
+  .vbtnbtn:hover{background:var(--yellow-press)}
+  .vbtnbtn:active{transform:translateY(1px)}
+  .listfill{flex:1;background:#F4F4F5}
+
+  /* bottom nav */
+  .bottomnav{display:flex;justify-content:space-around;align-items:flex-start;padding:16px 20px 26px;background:#fff;border-top:1px solid var(--line)}
+  .navbtn{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gold);font-weight:700;font-size:13px}
+  .navbtn .circle{width:56px;height:56px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;color:var(--yellow-ink);box-shadow:0 8px 18px -8px rgba(247,181,0,.7);transition:transform .08s}
+  .navbtn:active .circle{transform:scale(.93)}
+  .navbtn svg{width:25px;height:25px}
+
+  /* ---- picker ---- */
+  .filterbar{display:flex;background:var(--yellow);color:var(--yellow-ink)}
+  .filterbar span{flex:1;text-align:center;font-size:13px;font-weight:700;padding:14px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .notfound{text-align:center;font-size:17px;font-weight:700;color:var(--ink);padding:20px 12px;background:#F4F4F5}
+  .picker-body{padding:22px 18px;display:flex;flex-direction:column;gap:22px;align-items:center}
+  .selectcard{width:100%;border:1.5px solid var(--yellow);border-radius:14px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .selectcard .pls{color:var(--gold);font-weight:800;font-size:18px}
+  .selrow{display:flex;gap:26px;justify-content:center;width:100%}
+  .seltile{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--gold);font-weight:800;font-size:16px;transition:transform .1s}
+  .seltile:active{transform:scale(.95)}
+  .seltile .tc{width:92px;height:92px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff}
+  .seltile .tc svg{width:48px;height:48px}
+  .xcancel{width:50px;height:50px;border-radius:50%;background:var(--yellow);color:var(--yellow-ink);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -8px rgba(247,181,0,.7)}
+  .xcancel svg{width:24px;height:24px}
+
+  /* ---- form header ---- */
+  .topbar{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;gap:8px;padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+  .topbar .ttl{text-align:center;font-size:19px;font-weight:600;color:var(--ink)}
+  .rbtn{width:44px;height:44px;border-radius:50%;background:var(--yellow);color:var(--yellow-ink);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s}
+  .rbtn:active{transform:scale(.92)}
+  .rbtn svg{width:22px;height:22px}
+  .rbtn.ghost{background:transparent}
+
+  .formbody{padding:18px 18px 22px;display:flex;flex-direction:column;gap:4px}
+  .docketbar{background:var(--yellow);color:var(--yellow-ink);border-radius:9px;padding:15px;text-align:center;font-weight:800;font-size:16px;margin-bottom:12px}
+
+  .flabel{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:800;color:var(--ink);margin:14px 0 8px}
+  .flabel:first-of-type{margin-top:0}
+  .addbtn{width:30px;height:30px;border-radius:50%;background:var(--yellow);color:var(--yellow-ink);border:0;cursor:pointer;font-size:19px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .addbtn:active{transform:scale(.9)}
+  .control{width:100%;border:0;background:var(--field);border-radius:8px;padding:15px 14px;font-size:15px;color:var(--ink);font-family:inherit;appearance:none;-webkit-appearance:none}
+  .control::placeholder{color:#A6A6AC}
+  select.control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238A8A90' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+  textarea.control{resize:none;min-height:78px;line-height:1.5}
+  .control:focus{outline:2px solid var(--yellow);outline-offset:1px}
+  a:focus-visible,button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+
+  /* vehicle segmented */
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+  .vbtn{border:1px solid var(--field-line);background:var(--field);color:var(--ink);border-radius:8px;padding:14px 4px;font-weight:600;font-size:14px;cursor:pointer;transition:.12s}
+  .vbtn.on{background:var(--yellow-soft);border-color:var(--yellow);color:var(--yellow-ink);font-weight:800}
+
+  .weight-row{display:flex;gap:14px;align-items:center}
+  .weight-row .control{flex:1}
+  .fullload{flex:0 0 auto;display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink);cursor:pointer;user-select:none}
+  .fullload .box{width:26px;height:26px;border-radius:6px;background:var(--yellow);display:flex;align-items:center;justify-content:center;color:var(--yellow-ink)}
+  .fullload .box svg{width:17px;height:17px}
+  .fullload.off .box{background:#fff;border:2px solid #C9C9CE;color:transparent}
+
+  /* footer cta */
+  .formfoot{padding:0;background:#fff}
+  .cta{width:100%;background:var(--yellow);color:var(--yellow-ink);border:0;padding:19px;font-weight:800;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:.12s}
+  .cta:hover{background:var(--yellow-press)}
+  .cta:active{transform:translateY(1px)}
+  .cta svg{width:19px;height:19px}
+
+  /* signatures */
+  .sig-btn{width:100%;background:var(--yellow);border:0;border-radius:8px;padding:18px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;color:var(--yellow-ink);font-weight:800;font-size:18px;margin-bottom:14px;transition:.12s}
+  .sig-btn:hover{background:var(--yellow-press)}
+  .sig-btn svg{width:22px;height:22px;flex:0 0 auto}
+  .sig-btn .tick{margin-left:auto;display:none}
+  .sig-btn.done .tick{display:block}
+
+  .sec-head{color:var(--gold);font-weight:800;font-size:20px;margin:6px 0 14px}
+  .dropzone{border:1px solid var(--line);border-radius:14px;padding:22px 16px;box-shadow:0 6px 18px -12px rgba(0,0,0,.3)}
+  .dz-hint{text-align:center;color:var(--gold);font-weight:800;font-size:17px;margin:0 0 22px}
+  .capgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:26px 40px}
+  .captile{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--ink);font-weight:700;font-size:15px;transition:transform .1s}
+  .captile:active{transform:scale(.94)}
+  .captile .ci{width:78px;height:78px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;color:var(--yellow-ink);box-shadow:0 8px 18px -10px rgba(247,181,0,.8)}
+  .captile svg{width:34px;height:34px}
+  .captile.captured .ci{background:var(--green);color:#fff}
+  .thumb{margin-top:18px;width:100%;border-radius:10px;border:1px solid var(--green);aspect-ratio:16/10;object-fit:cover;display:none}
+
+  /* signature modal */
+  .modal{position:absolute;inset:0;z-index:80;background:#fff;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(22px);transition:opacity .26s ease,transform .26s ease;color:var(--ink)}
+  .modal.open{opacity:1;visibility:visible;transform:none}
+  .modal-head{display:grid;grid-template-columns:44px 1fr 60px;align-items:center;gap:10px;padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+  .modal-head .title{text-align:center;font-weight:800;font-size:19px;color:var(--gold)}
+  .modal-head button{background:none;border:0;cursor:pointer;font-weight:800;font-size:15px;color:var(--gold);font-family:inherit;padding:8px}
+  .modal-head .x{font-size:22px;justify-self:start;padding:4px}
+  .modal-head .clear{justify-self:end}
+  .modal-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+  .modal-body .mlabel{font-weight:800;font-size:16px;color:var(--ink)}
+  .pad-label{text-align:center;color:var(--gold);font-size:16px;font-weight:800;margin:8px 0 4px}
+  .sigpad-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+  #canvasHost{width:100%;height:100%;min-height:250px;border:1.5px dashed #9A9AA0;border-radius:6px;touch-action:none;display:block;background:#fff}
+  .modal-actions{padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px}
+  .btn-primary{background:var(--yellow);color:var(--yellow-ink);border:0;cursor:pointer;font-weight:800;font-size:17px;padding:18px;border-radius:8px;transition:.12s}
+  .btn-primary:hover{background:var(--yellow-press)}
+  .btn-muted{background:#FBD98A;color:var(--yellow-ink);border:0;cursor:pointer;font-weight:800;font-size:16px;padding:17px;border-radius:8px}
+
+  /* success */
+  .success{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;height:100%;padding:30px;text-align:center}
+  .success .tick{width:104px;height:104px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 44px -16px rgba(46,158,91,.6)}
+  .success .tick svg{width:52px;height:52px}
+  .success h3{margin:0;font-size:24px;font-weight:800;color:var(--ink)}
+  .success p{margin:0;color:var(--sub);font-size:14px}
+  .success .dk{background:var(--yellow-soft);border:1px solid var(--yellow);color:var(--gold);font-weight:800;padding:10px 18px;border-radius:8px;font-size:15px}
+  .success .home{margin-top:6px;background:var(--yellow);color:var(--yellow-ink);border:0;border-radius:999px;padding:15px 30px;font-weight:800;font-size:15px;cursor:pointer}
+
+  /* toast */
+  .toast{position:absolute;left:50%;bottom:36px;transform:translate(-50%,20px);background:#1C1C1F;color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;white-space:nowrap;display:flex;align-items:center;gap:9px}
+  .toast .d{width:8px;height:8px;border-radius:50%;background:var(--yellow)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* legend */
+  .legend{flex:0 0 auto;width:266px;background:var(--legend-card);border:1px solid var(--legend-line);border-radius:18px;padding:24px;backdrop-filter:blur(8px)}
+  .legend h3{margin:0 0 4px;font-size:15px;font-weight:800}
+  .legend .sub{margin:0 0 18px;font-size:13px;color:var(--page-sub);line-height:1.55}
+  .legend ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0;counter-reset:step}
+  .legend li{display:flex;gap:13px;align-items:flex-start;padding:11px 0;font-size:14px;line-height:1.35;border-top:1px solid var(--legend-line)}
+  .legend li:first-child{border-top:0}
+  .legend li::before{counter-increment:step;content:counter(step,decimal-leading-zero);flex:0 0 auto;width:30px;font-family:ui-monospace,Menlo,monospace;color:var(--gold);font-weight:700;font-size:13px}
+  .legend .tip{margin-top:18px;font-size:12.5px;color:var(--page-sub);line-height:1.55;border-top:1px solid var(--legend-line);padding-top:15px}
+  @media (max-width:900px){.legend{display:none}}
+</style>
+
+</head>
+<body>
+<header class="masthead">
+  <p class="eyebrow">Interactive prototype</p>
+  <h1>Agg&nbsp;Loads</h1>
+  <p>The aggregate &amp; quarry docket app, built straight from the wireframes &mdash; same layout and flow, with a yellow theme. Tap through it: raise a docket, sign on the pad, and watch it land in the loads table.</p>
+</header>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="r">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="14" width="3" height="6" rx="1"/><rect x="6" y="10" width="3" height="10" rx="1"/><rect x="11" y="6" width="3" height="14" rx="1"/><rect x="16" y="2" width="3" height="18" rx="1"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+          <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="7" width="19" height="10" rx="3"/><rect x="3" y="9" width="13" height="6" rx="1.5" fill="currentColor"/><rect x="21.5" y="10" width="2" height="4" rx="1" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="views" id="views">
+        <!-- ============ 1. LIST ============ -->
+        <section class="view active" data-view="list">
+          <div class="scroll" style="background:#F4F4F5">
+            <div class="ltable">
+              <div class="lhead"><span>Docket</span><span>Date</span><span>Status</span><span>Conformity</span></div>
+              <div id="loadList"></div>
+            </div>
+          </div>
+          <nav class="bottomnav">
+            <button class="navbtn" data-nav="list"><span class="circle">%HOME%</span>Home</button>
+            <button class="navbtn" data-nav="picker"><span class="circle">%TRUCKADD%</span>New Load</button>
+            <button class="navbtn" data-nav="back"><span class="circle">%BACK%</span>Back</button>
+          </nav>
+        </section>
+
+        <!-- ============ 2. PICKER ============ -->
+        <section class="view" data-view="picker">
+          <div class="topbar">
+            <button class="rbtn" data-nav="list">%ARROW%</button>
+            <div class="ttl">New Load</div>
+            <span></span>
+          </div>
+          <div class="scroll">
+            <div class="picker-body">
+              <div class="selectcard">
+                <div class="pls">Please Select</div>
+                <div class="selrow">
+                  <button class="seltile" data-go="site-1"><span class="tc">%TRUCK%</span>Site Collection</button>
+                  <button class="seltile" data-go="quarry-1"><span class="tc">%TRUCK%</span>Quarry Collection</button>
+                </div>
+              </div>
+              <button class="xcancel" data-nav="list" title="Cancel">%X%</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 3. SITE-1 ============ -->
+        <section class="view" data-view="site-1">
+          <div class="topbar">
+            <button class="rbtn" data-nav="picker">%ARROW%</button>
+            <div class="ttl">Site Collection Information</div>
+            <span></span>
+          </div>
+          <div class="scroll">
+            <div class="formbody">
+              <div class="docketbar">Docket Number: <span data-docket>88234</span></div>
+
+              <div class="flabel">Customer <button class="addbtn" title="Add customer">+</button></div>
+              <select class="control" data-req><option value="">Select Customer</option></select>
+
+              <div class="flabel">Customer Order Number</div>
+              <input class="control" placeholder="Customer Order Number">
+
+              <div class="flabel">Site Collection Address <button class="addbtn">+</button></div>
+              <select class="control"><option value="">Select Collection Address</option></select>
+
+              <div class="flabel">Delivery Address <button class="addbtn">+</button></div>
+              <select class="control"><option value="">Delivery Address</option></select>
+
+              <div class="seg" data-toggleset>
+                <button class="vbtn on">Artic</button>
+                <button class="vbtn">Rigid</button>
+                <button class="vbtn">Low Loader</button>
+              </div>
+
+              <div class="flabel">Category</div>
+              <select class="control" data-cats="site"><option value="">Select Category</option></select>
+
+              <div class="flabel">Type</div>
+              <select class="control" data-types><option value="">Select Type</option></select>
+
+              <div class="flabel">Weight (Tonne)</div>
+              <div class="weight-row">
+                <input class="control" type="number" placeholder="Weight" data-weight>
+                <label class="fullload" data-fullload><span class="box">%CHECK%</span>Full Load</label>
+              </div>
+
+              <div class="flabel">Comments</div>
+              <textarea class="control" placeholder="Add any additional comments&hellip;"></textarea>
+            </div>
+          </div>
+          <div class="formfoot"><button class="cta" data-go="site-2">Next</button></div>
+        </section>
+
+        <!-- ============ 4. SITE-2 ============ -->
+        <section class="view" data-view="site-2">
+          <div class="topbar">
+            <button class="rbtn" data-nav="site-1">%ARROW%</button>
+            <div class="ttl">Site Collection Information</div>
+            <span></span>
+          </div>
+          <div class="scroll">
+            <div class="formbody">
+              <button class="sig-btn" data-sig="Customer"></button>
+              <button class="sig-btn" data-sig="Driver"></button>
+              <div class="sec-head">Docket Image</div>
+              <div class="dropzone">
+                <p class="dz-hint">Please Take Image of Quarry Docket</p>
+                <div class="capgrid">
+                  <button class="captile" data-capture><span class="ci">%CAM%</span>Camera</button>
+                  <button class="captile" data-capture><span class="ci">%GALLERY%</span>Device</button>
+                  <button class="captile" data-capture><span class="ci">%SCAN%</span>Scan</button>
+                </div>
+                <img class="thumb" alt="Captured docket" data-thumb>
+              </div>
+            </div>
+          </div>
+          <div class="formfoot"><button class="cta" data-submit>Next</button></div>
+        </section>
+
+        <!-- ============ 5. QUARRY-1 ============ -->
+        <section class="view" data-view="quarry-1">
+          <div class="topbar">
+            <button class="rbtn" data-nav="picker">%ARROW%</button>
+            <div class="ttl">Quarry Collection Information</div>
+            <button class="rbtn" title="Saved">%BOOK%</button>
+          </div>
+          <div class="scroll">
+            <div class="formbody">
+              <div class="docketbar">Docket Number: <span data-docket>12345</span></div>
+
+              <div class="flabel">Customer <button class="addbtn">+</button></div>
+              <select class="control" data-req><option value="">Select Customer</option></select>
+
+              <div class="flabel">Customer Order Number</div>
+              <input class="control" placeholder="Customer Order Number">
+
+              <div class="flabel">Quarry Address <button class="addbtn">+</button></div>
+              <select class="control" data-quarries><option value="">Select Quarry</option></select>
+
+              <div class="flabel">Site Location <button class="addbtn">+</button></div>
+              <select class="control" data-sites><option value="">Select Site Location</option></select>
+            </div>
+          </div>
+          <div class="formfoot"><button class="cta" data-go="quarry-2">Next</button></div>
+        </section>
+
+        <!-- ============ 6. QUARRY-2 ============ -->
+        <section class="view" data-view="quarry-2">
+          <div class="topbar">
+            <button class="rbtn" data-nav="quarry-1">%ARROW%</button>
+            <div class="ttl">Quarry Collection Information</div>
+            <button class="rbtn" title="Saved">%BOOK%</button>
+          </div>
+          <div class="scroll">
+            <div class="formbody">
+              <div class="flabel">Category</div>
+              <select class="control" data-cats="quarry"><option value="">Select Category</option></select>
+
+              <div class="flabel">Type</div>
+              <select class="control" data-types><option value="">Select Type</option></select>
+
+              <div class="flabel">Weight (Tonne)</div>
+              <input class="control" type="number" placeholder="Weight">
+
+              <div class="flabel">Comments</div>
+              <textarea class="control" placeholder="Comments"></textarea>
+            </div>
+          </div>
+          <div class="formfoot"><button class="cta" data-go="quarry-3">Next</button></div>
+        </section>
+
+        <!-- ============ 7. QUARRY-3 ============ -->
+        <section class="view" data-view="quarry-3">
+          <div class="topbar">
+            <button class="rbtn" data-nav="quarry-2">%ARROW%</button>
+            <div class="ttl">Quarry Collection Information</div>
+            <span></span>
+          </div>
+          <div class="scroll">
+            <div class="formbody">
+              <button class="sig-btn" data-sig="Customer"></button>
+              <button class="sig-btn" data-sig="Driver"></button>
+              <div class="sec-head">Docket Image</div>
+              <div class="dropzone">
+                <p class="dz-hint">Please Take Image of Docket</p>
+                <div class="capgrid">
+                  <button class="captile" data-capture><span class="ci">%CAM%</span>Camera</button>
+                  <button class="captile" data-capture><span class="ci">%GALLERY%</span>Device</button>
+                  <button class="captile" data-capture><span class="ci">%SCAN%</span>Scan</button>
+                </div>
+                <img class="thumb" alt="Captured docket" data-thumb>
+              </div>
+            </div>
+          </div>
+          <div class="formfoot"><button class="cta" data-submit>Next</button></div>
+        </section>
+
+        <!-- ============ 8. SUCCESS ============ -->
+        <section class="view" data-view="success">
+          <div class="success">
+            <div class="tick">%BIGCHECK%</div>
+            <h3>Load Saved</h3>
+            <p>Docket recorded and added to the loads list.</p>
+            <div class="dk" data-success-docket>&mdash;</div>
+            <button class="home" data-nav="list">Back to Loads</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- signature modal -->
+      <div class="modal" id="sigModal">
+        <div class="modal-head">
+          <button class="x" data-sig-cancel>&times;</button>
+          <span class="title" id="sigTitle">Customer Signature</span>
+          <button class="clear" data-sig-clear>Clear</button>
+        </div>
+        <div class="modal-body">
+          <div class="mlabel" id="sigNameLabel">Customer Name</div>
+          <input class="control" id="sigName" placeholder="Customer Name">
+          <div class="pad-label">Draw your signature in the area below</div>
+          <div class="sigpad-wrap"><canvas id="canvasHost"></canvas></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-primary" data-sig-save>Save Signature</button>
+          <button class="btn-muted" data-sig-cancel>Cancel</button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"><span class="d"></span><span id="toastMsg"></span></div>
+    </div>
+  </div>
+
+  <aside class="legend">
+    <h3>The flow</h3>
+    <p class="sub">Two collection types, one docket workflow &mdash; matching the wireframes, reskinned yellow.</p>
+    <ol>
+      <li>Review the loads table</li>
+      <li>New Load &mdash; Site or Quarry</li>
+      <li>Customer, addresses &amp; vehicle</li>
+      <li>Category, type &amp; weight</li>
+      <li>Capture signatures &amp; docket image</li>
+      <li>Save &mdash; it lands in the table</li>
+    </ol>
+    <p class="tip">Try the signature pad &mdash; draw with a mouse or finger, then Save. Everything runs locally in your browser.</p>
+  </aside>
+</div>
+
+<script>
+const I={
+  HOME:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>',
+  BACK:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>',
+  ARROW:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>',
+  TRUCK:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h11v9H3z"/><path d="M14 9h3.5L21 12.5V15h-7z" /><circle cx="7" cy="17" r="2" fill="#fff"/><circle cx="17" cy="17" r="2" fill="#fff"/><circle cx="7" cy="17" r="1"/><circle cx="17" cy="17" r="1"/></svg>',
+  TRUCKADD:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V6H2v11h2"/><circle cx="6.5" cy="17.5" r="1.7"/><circle cx="16.5" cy="17.5" r="1.7"/><path d="M14 9h4l3 4v4h-2"/><path d="M8 3v5M5.5 5.5h5"/></svg>',
+  X:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  PEN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  CAM:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  GALLERY:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>',
+  SCAN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>',
+  BOOK:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1Z"/></svg>',
+  CHECK:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  BIGCHECK:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+};
+
+const DATA={
+  customers:['Townmore Construction','Purcell','MKN Property Group','Mc Kelan Construction','Jem Construction Ltd','Derrin group','Coolsivina Ltd.'],
+  addresses:['Lidl Baltinglass','Vision Contracting Naul Village','Woodview Straffan','University College Dublin, (UCD)','Breffni, Loughshinny',"Carroll O'Keefe, Nenagh",'Cleary Doyle, Lisdinfarne, Clondalkin','Coolsivina, Gaelscoil, Shannon','Derrin group, Lyreen Meadows, Kilcock'],
+  quarries:['Roadstone Belgard Quarry','Kilsaran Ballycoolin','Breedon Kilbarry','Harrington Concrete Quarry'],
+  cats:{site:['Aggregate Supply','Muck Away','Ready-Mix Concrete','Recycling'],quarry:['Waste Collection','Stone Supply','Sand & Gravel','Recycled Fill']},
+  types:['Type 1 (804)','Type 2 (803)','6F2 Capping','Clause 804 Stone','Topsoil','Hardcore']
+};
+
+let loads=[{docket:'11670',date:'13/03/2026',status:'Active'},{docket:'11671',date:'13/03/2026',status:'Done'}];
+let flowType='site', currentDocket='';
+const sigStore={Customer:null,Driver:null};
+
+/* icon substitution */
+document.querySelectorAll('.views, .modal').forEach(root=>{
+  root.innerHTML=root.innerHTML.replace(/%([A-Z]+)%/g,(m,k)=> I[k]!==undefined?I[k]:m);
+});
+
+/* populate selects */
+function fill(sel,arr){arr.forEach(v=>{const o=document.createElement('option');o.textContent=v;o.value=v;sel.appendChild(o);});}
+document.querySelectorAll('select').forEach(s=>{
+  if(s.dataset.cats||s.dataset.types||s.dataset.quarries!==undefined||s.dataset.sites!==undefined) return;
+  const first=s.options[0]?.text||'';
+  if(/Customer/.test(first)) fill(s,DATA.customers);
+  else if(/Address/.test(first)) fill(s,DATA.addresses);
+});
+document.querySelectorAll('select[data-cats]').forEach(s=>fill(s,DATA.cats[s.dataset.cats]||[]));
+document.querySelectorAll('select[data-types]').forEach(s=>fill(s,DATA.types));
+document.querySelectorAll('select[data-quarries]').forEach(s=>fill(s,DATA.quarries));
+document.querySelectorAll('select[data-sites]').forEach(s=>fill(s,DATA.addresses));
+
+/* list */
+const listEl=document.getElementById('loadList');
+function renderList(){
+  listEl.innerHTML='';
+  loads.forEach(l=>{
+    const active=l.status==='Active';
+    const row=document.createElement('div');
+    row.className='lrow';
+    row.innerHTML=`
+      <span class="dk">${l.docket}</span>
+      <span class="dt">${l.date}</span>
+      <span class="pill ${active?'active':'done'}">${l.status}</span>
+      <button class="vbtnbtn">View &amp; sign</button>`;
+    row.querySelector('.vbtnbtn').addEventListener('click',()=>{
+      flowType='site'; currentDocket=l.docket;
+      resetCaptureFor('site-2'); go('site-2'); toast('Opening docket '+l.docket);
+    });
+    listEl.appendChild(row);
+  });
+}
+renderList();
+
+/* router */
+const views=document.querySelectorAll('.view');
+function go(name){
+  views.forEach(v=>v.classList.toggle('active',v.dataset.view===name));
+  const s=document.querySelector('.view.active .scroll'); if(s) s.scrollTop=0;
+}
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('[data-nav]'), goEl=e.target.closest('[data-go]');
+  if(nav){const t=nav.dataset.nav; go(t==='back'?'list':t); return;}
+  if(goEl){
+    const dest=goEl.dataset.go;
+    if(dest==='site-1'){flowType='site'; newDocket('site');}
+    if(dest==='quarry-1'){flowType='quarry'; newDocket('quarry');}
+    go(dest);
+  }
+});
+function newDocket(type){
+  currentDocket=String(Math.floor(10000+Math.random()*89999));
+  document.querySelectorAll(`[data-view="${type}-1"] [data-docket]`).forEach(el=>el.textContent=currentDocket);
+  sigStore.Customer=null; sigStore.Driver=null; refreshSigButtons();
+  resetCaptureFor(type==='site'?'site-2':'quarry-3');
+}
+
+/* vehicle segmented */
+document.querySelectorAll('[data-toggleset]').forEach(set=>{
+  set.addEventListener('click',e=>{
+    const b=e.target.closest('.vbtn'); if(!b) return;
+    set.querySelectorAll('.vbtn').forEach(t=>t.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+
+/* full load */
+document.querySelectorAll('[data-fullload]').forEach(cb=>{
+  cb.addEventListener('click',()=>{
+    cb.classList.toggle('off');
+    const w=cb.closest('.weight-row').querySelector('[data-weight]');
+    if(!cb.classList.contains('off')){w.value='';w.placeholder='Full';w.disabled=true;}
+    else{w.placeholder='Weight';w.disabled=false;}
+  });
+});
+
+/* docket image */
+const DOCKET_IMG='data:image/svg+xml;base64,'+btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='320' height='200'><rect width='320' height='200' fill='#F4F4F5'/><rect x='16' y='16' width='288' height='168' rx='6' fill='#fff' stroke='#E0E0E4'/><rect x='30' y='30' width='120' height='14' rx='3' fill='#F7B500'/><rect x='30' y='58' width='240' height='8' rx='3' fill='#D8D8DC'/><rect x='30' y='75' width='210' height='8' rx='3' fill='#D8D8DC'/><rect x='30' y='92' width='230' height='8' rx='3' fill='#D8D8DC'/><rect x='30' y='118' width='90' height='8' rx='3' fill='#E4E4E8'/><rect x='30' y='135' width='150' height='8' rx='3' fill='#E4E4E8'/><text x='206' y='158' font-family='monospace' font-size='13' fill='#9A9AA0'>DOCKET</text></svg>`);
+function resetCaptureFor(view){
+  const v=document.querySelector(`[data-view="${view}"]`); if(!v) return;
+  v.querySelectorAll('[data-capture]').forEach(b=>b.classList.remove('captured'));
+  const t=v.querySelector('[data-thumb]'); if(t) t.style.display='none';
+}
+document.querySelectorAll('[data-capture]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const zone=btn.closest('.dropzone');
+    zone.querySelectorAll('[data-capture]').forEach(b=>b.classList.remove('captured'));
+    btn.classList.add('captured');
+    const thumb=zone.querySelector('[data-thumb]'); thumb.src=DOCKET_IMG; thumb.style.display='block';
+    toast('Docket image captured');
+  });
+});
+
+/* signatures */
+function refreshSigButtons(){
+  document.querySelectorAll('[data-sig]').forEach(b=>{
+    const who=b.dataset.sig, s=sigStore[who];
+    b.classList.toggle('done',!!s);
+    b.innerHTML=`${I.PEN}<span>${who} Signature</span><span class="tick">${I.CHECK}</span>`;
+  });
+}
+refreshSigButtons();
+
+let activeSig=null;
+const modal=document.getElementById('sigModal'),sigTitle=document.getElementById('sigTitle'),sigName=document.getElementById('sigName');
+document.querySelectorAll('[data-sig]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    activeSig=b.dataset.sig;
+    sigTitle.textContent=activeSig+' Signature';
+    document.getElementById('sigNameLabel').textContent=activeSig+' Name';
+    sigName.placeholder=activeSig+' Name';
+    sigName.value=(sigStore[activeSig]&&sigStore[activeSig].name)||'';
+    modal.classList.add('open'); setTimeout(setupCanvas,60);
+  });
+});
+document.querySelectorAll('[data-sig-cancel]').forEach(b=>b.addEventListener('click',()=>modal.classList.remove('open')));
+document.querySelector('[data-sig-clear]').addEventListener('click',clearCanvas);
+document.querySelector('[data-sig-save]').addEventListener('click',()=>{
+  if(isCanvasBlank()){toast('Please draw a signature');return;}
+  sigStore[activeSig]={name:sigName.value||activeSig,img:canvas.toDataURL()};
+  modal.classList.remove('open'); refreshSigButtons(); toast(activeSig+' signature saved');
+});
+
+/* canvas */
+const canvas=document.getElementById('canvasHost'),ctx=canvas.getContext('2d');
+let drawing=false,dirty=false,last=null;
+function setupCanvas(){
+  const r=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#1C1C1F'; dirty=false;
+}
+function pos(e){const r=canvas.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:p.clientX-r.left,y:p.clientY-r.top};}
+function start(e){e.preventDefault();drawing=true;last=pos(e);}
+function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;dirty=true;}
+function end(){drawing=false;}
+canvas.addEventListener('pointerdown',start);
+canvas.addEventListener('pointermove',move);
+window.addEventListener('pointerup',end);
+function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height);dirty=false;}
+function isCanvasBlank(){return !dirty;}
+window.addEventListener('resize',()=>{if(modal.classList.contains('open'))setupCanvas();});
+
+/* submit */
+document.querySelectorAll('[data-submit]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const t=new Date(),dd=String(t.getDate()).padStart(2,'0'),mm=String(t.getMonth()+1).padStart(2,'0');
+    const date=`${dd}/${mm}/${t.getFullYear()}`;
+    if(!loads.some(l=>l.docket===currentDocket)){loads.unshift({docket:currentDocket,date,status:'Active'});renderList();}
+    document.querySelector('[data-success-docket]').textContent='Docket '+currentDocket;
+    go('success');
+  });
+});
+
+/* toast */
+let toastTimer;const toastEl=document.getElementById('toast'),toastMsg=document.getElementById('toastMsg');
+function toast(msg){toastMsg.textContent=msg;toastEl.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1800);}
+</script>
+
+</body>
+</html>
