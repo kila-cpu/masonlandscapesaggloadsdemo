@@ -75,9 +75,8 @@
 
   /* ---- list / table ---- */
   .ltable{display:flex;flex-direction:column}
-  .lhead{display:grid;grid-template-columns:1fr 1.15fr .8fr 1.25fr;background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:13px;padding:14px 14px}
-  .lhead span:nth-child(3),.lrow .st{justify-self:start}
-  .lrow{display:grid;grid-template-columns:1fr 1.15fr .8fr 1.25fr;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;background:#fff}
+  .lhead{display:grid;grid-template-columns:1fr 1.2fr 1fr;background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:13px;padding:14px 14px}
+  .lrow{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;padding:14px 14px;border-bottom:1px solid var(--line);font-size:14px;background:#fff}
   .lrow .dk{font-weight:600}
   .lrow .dt{color:var(--ink)}
   .pill{display:inline-flex;align-items:center;justify-self:start;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
@@ -239,7 +238,7 @@
         <section class="view active" data-view="list">
           <div class="scroll" style="background:#F4F4F5">
             <div class="ltable">
-              <div class="lhead"><span>Docket</span><span>Date</span><span>Status</span><span>Conformity</span></div>
+              <div class="lhead"><span>Docket</span><span>Date</span><span>Status</span></div>
               <div id="loadList"></div>
             </div>
           </div>
@@ -531,12 +530,7 @@ function renderList(){
     row.innerHTML=`
       <span class="dk">${l.docket}</span>
       <span class="dt">${l.date}</span>
-      <span class="pill ${active?'active':'done'}">${l.status}</span>
-      <button class="vbtnbtn">View &amp; sign</button>`;
-    row.querySelector('.vbtnbtn').addEventListener('click',()=>{
-      flowType='site'; currentDocket=l.docket;
-      resetCaptureFor('site-2'); go('site-2'); toast('Opening docket '+l.docket);
-    });
+      <span class="pill ${active?'active':'done'}">${l.status}</span>`;
     listEl.appendChild(row);
   });
 }
