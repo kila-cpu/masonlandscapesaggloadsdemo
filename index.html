@@ -76,7 +76,9 @@
   /* ---- list / table ---- */
   .ltable{display:flex;flex-direction:column}
   .lhead{display:grid;grid-template-columns:1fr 1.2fr 1fr;background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:13px;padding:14px 14px}
-  .lrow{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;padding:14px 14px;border-bottom:1px solid var(--line);font-size:14px;background:#fff}
+  .lrow{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;padding:14px 14px;border-bottom:1px solid var(--line);font-size:14px;background:#fff;cursor:pointer;transition:background .12s}
+  .lrow:hover{background:var(--yellow-soft)}
+  .lrow:active{background:#FBE6A6}
   .lrow .dk{font-weight:600}
   .lrow .dt{color:var(--ink)}
   .pill{display:inline-flex;align-items:center;justify-self:start;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
@@ -527,10 +529,18 @@ function renderList(){
     const active=l.status==='Active';
     const row=document.createElement('div');
     row.className='lrow';
+    row.setAttribute('role','button');
+    row.tabIndex=0;
     row.innerHTML=`
       <span class="dk">${l.docket}</span>
       <span class="dt">${l.date}</span>
       <span class="pill ${active?'active':'done'}">${l.status}</span>`;
+    const open=()=>{
+      flowType='site'; currentDocket=l.docket;
+      resetCaptureFor('site-2'); go('site-2'); toast('Opening docket '+l.docket);
+    };
+    row.addEventListener('click',open);
+    row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
     listEl.appendChild(row);
   });
 }
